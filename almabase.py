@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+
+import json
+import uuid
+import operator
+import requests
+
+class Github:
+
+    def __init__(self, github_endpoint=None):
+        self.github_endpoint = github_endpoint or "https://api.github.com"
+
+    def _get_response(self, endpoint, method="GET", params={}, data={}, files={}, headers={}):
+        x_request_id = str(uuid.uuid4())
+        headers["X-Request-ID"] = x_request_id
+
+        # print ('GITHUB_REQUEST\t%s\t%s\t%s' % (method, endpoint, {'params': params, 'data': data, 'files': files, 'headers': headers}))
+
+        resp = getattr(requests, method.lower())(endpoint, params=params, data=data, files=files, headers=headers, auth=('itsvks', 'Windows@89'))
+
+        # print ('GITHUB_RESPONSE\t%s\t%s\t%s' % (method, endpoint, {'X-Request-ID': x_request_id, 'status': resp.status_code, 'content': resp.content}))
+        return resp
+
+    def get_org_repositories(self, **kwargs):
+
+        try:
+            response = self._get_response(self.github_endpoint + "/orgs/" + str(kwargs["org"]) + "/repos?page=" + str(kwargs["page"]))
+            if response.status_code == 200:
+                return response.json()
+            return []
+
+        except Exception, err:
+            print "Exception :", err
+            return []
+
+    def get_repo_contributors(self, **kwargs):
+        try:
+            response = self._get_response(self.github_endpoint + "/repos/" + str(kwargs["org"]) + "/" + str(kwargs["repo"]) + "/contributors")
+            if response.status_code == 200:
+                return response.json()
+            return []
+
+        except Exception, err:
+            print "Exception :", err
+            return []
+
+if __name__ == '__main__':
+    org = raw_input("Enter Organization Name : ")
+    n = int(raw_input("No of most popular repositories : "))
+    m = int(raw_input("No of committees : "))
+
+    github = Github()
+
+    output = []
+    repositories = []
+    most_n_popular_repo = []
+
+    page_num = 1
+    temp = github.get_org_repositories(org=org, page=page_num)
+
+    while (len(temp) > 0):
+        page_num = page_num + 1
+        temp = github.get_org_repositories(org=org, page=page_num)
+        if len(temp) > 0:
+            repositories.extend(temp)
+
+    if repositories:
+        sorted_repo = sorted(repositories, key=operator.itemgetter('forks'), reverse=True)
+
+        for i in xrange(len(sorted_repo)):
+            if i is n:
+                break
+            most_n_popular_repo.append(sorted_repo[i])
+            
+    for i in most_n_popular_repo:
+        top_m_contributors = []
+        data = {
+            "repo_name": i["name"],
+            "committees": []
+        }
+        contributors = github.get_repo_contributors(org=org, repo=i["name"])
+
+        for i in xrange(len(contributors)):
+            if i is m:
+                break
+            d = {
+                'committee': contributors[i]["login"],
+                'commits': contributors[i]["contributions"]
+            }
+            top_m_contributors.append(d)
+
+        data["committees"].extend(top_m_contributors)
+        output.append(data)
+    print output
+
+
+
+
+
+
+
+
+
+
