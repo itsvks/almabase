@@ -5,6 +5,7 @@ import uuid
 import operator
 import requests
 
+# Wrapper for call github apis
 class Github:
 
     def __init__(self, github_endpoint=None):
@@ -16,7 +17,7 @@ class Github:
 
         # print ('GITHUB_REQUEST\t%s\t%s\t%s' % (method, endpoint, {'params': params, 'data': data, 'files': files, 'headers': headers}))
 
-        resp = getattr(requests, method.lower())(endpoint, params=params, data=data, files=files, headers=headers, auth=('itsvks', 'Windows@89'))
+        resp = getattr(requests, method.lower())(endpoint, params=params, data=data, files=files, headers=headers)
 
         # print ('GITHUB_RESPONSE\t%s\t%s\t%s' % (method, endpoint, {'X-Request-ID': x_request_id, 'status': resp.status_code, 'content': resp.content}))
         return resp
@@ -44,6 +45,7 @@ class Github:
             print "Exception :", err
             return []
 
+
 if __name__ == '__main__':
     org = raw_input("Enter Organization Name : ")
     n = int(raw_input("No of most popular repositories : "))
@@ -58,12 +60,14 @@ if __name__ == '__main__':
     page_num = 1
     temp = github.get_org_repositories(org=org, page=page_num)
 
+    # call get org reppo method till we get repositories
     while (len(temp) > 0):
         page_num = page_num + 1
         temp = github.get_org_repositories(org=org, page=page_num)
         if len(temp) > 0:
             repositories.extend(temp)
 
+    # sorted repositories based on forks
     if repositories:
         sorted_repo = sorted(repositories, key=operator.itemgetter('forks'), reverse=True)
 
@@ -71,7 +75,8 @@ if __name__ == '__main__':
             if i is n:
                 break
             most_n_popular_repo.append(sorted_repo[i])
-            
+     
+    # Get Repo contributors for n popular repos.       
     for i in most_n_popular_repo:
         top_m_contributors = []
         data = {
@@ -92,13 +97,3 @@ if __name__ == '__main__':
         data["committees"].extend(top_m_contributors)
         output.append(data)
     print output
-
-
-
-
-
-
-
-
-
-
