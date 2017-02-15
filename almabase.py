@@ -34,9 +34,9 @@ class Github:
             print "Exception :", err
             return []
 
-    def get_repo_contributors(self, **kwargs):
+    def get_repo_contributors_statics(self, **kwargs):
         try:
-            response = self._get_response(self.github_endpoint + "/repos/" + str(kwargs["org"]) + "/" + str(kwargs["repo"]) + "/contributors")
+            response = self._get_response(self.github_endpoint + "/repos/" + str(kwargs["owner"]) + "/" + str(kwargs["repo"]) + "/stats/contributors")
             if response.status_code == 200:
                 return response.json()
             return []
@@ -49,7 +49,7 @@ class Github:
 if __name__ == '__main__':
     org = raw_input("Enter Organization Name : ")
     n = int(raw_input("No of most popular repositories : "))
-    m = int(raw_input("No of committees : "))
+    m = int(raw_input("No of top committees : "))
 
     github = Github()
 
@@ -83,16 +83,19 @@ if __name__ == '__main__':
             "repo_name": i["name"],
             "committees": []
         }
-        contributors = github.get_repo_contributors(org=org, repo=i["name"])
+        contributors = github.get_repo_contributors_statics(owner=org, repo=i["name"])
 
-        for i in xrange(len(contributors)):
-            if i is m:
-                break
-            d = {
-                'committee': contributors[i]["login"],
-                'commits': contributors[i]["contributions"]
-            }
-            top_m_contributors.append(d)
+        if contributors:
+            sorted_contributors = sorted(contributors, key=operator.itemgetter('total'), reverse=True)
+
+            for i in xrange(len(sorted_contributors)):
+                if i is m:
+                    break
+                d = {
+                    'committee': sorted_contributors[i]["author"]["login"],
+                    'commits': sorted_contributors[i]["total"]
+                }
+                top_m_contributors.append(d)
 
         data["committees"].extend(top_m_contributors)
         output.append(data)
